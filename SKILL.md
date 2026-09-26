@@ -1,15 +1,15 @@
 ---
 name: ontology-driven-dev
-description: 当用户要基于业务需求，通过「需求探索 → 本体建模 → 应用构建」三步法开发一套完整、可运行的本体驱动 BS(浏览器前后端) 业务系统时使用。基于七模型本体 YAML(M1/M2/M3/M5/M6/M7/MU) 与内置 code-paas 技术底座，强制每个需求探索阶段人工确认，产出严格对齐需求文档、本体模型与代码的系统。支持整体触发与单阶段入口(仅建模/仅构建)。触发词含：本体驱动、需求探索、本体建模、七模型、code-paas、AI原生应用、业务系统开发。
+description: 当用户要基于业务需求，通过「需求探索 → 本体建模 → 应用构建」三步法开发一套完整、可运行的本体驱动 BS(浏览器前后端) 业务系统时使用。基于七模型本体 YAML(M1/M2/M3/M5/M6/M7/MU) 与内置技术底座(默认 go-techbase：Hertz+PostgreSQL 16+ZITADEL；备选 code-paas：Flask+SQLite)，强制每个需求探索阶段人工确认，产出严格对齐需求文档、本体模型与代码的系统。支持整体触发与单阶段入口(仅建模/仅构建)。触发词含：本体驱动、需求探索、本体建模、七模型、go-techbase、code-paas、AI原生应用、业务系统开发。
 ---
 
 # 本体驱动系统开发技能（Ontology-Driven Dev）
 
 将"业务需求 → 软件需求规格 → 七模型本体 YAML → 可运行 BS 系统"的完整方法论打包为可复用技能。
-技术底座为内置的 `code-paas`（Flask + SQLite + React/TS 单体应用，含系统管理、流程引擎、工作台、本体注册表），
+技术底座默认为内置的 `go-techbase`（CloudWeGo Hertz + PostgreSQL 16 + ZITADEL + React/TS，与 code-paas 同构：含系统管理、流程引擎、工作台、本体注册表；错误码采用 OPIC 统一错误码，数据库由 OPIC-数据服务域集成 Pigsty 供给，身份认证对接 OPIC-零信任安全中心的 ZITADEL），备选内置的 `techbase/`（Flask + SQLite 同源实现），
 输出严格受四份规范约束。
 
-> **路径约定（跨工具通用）**：本技能内所有相对路径（如 `references/`、`reference-example/`、`techbase/`）均以「**本 SKILL.md 所在文件夹**」为根目录。
+> **路径约定（跨工具通用）**：本技能内所有相对路径（如 `references/`、`reference-example/`、`go-techbase/`、`techbase/`）均以「**本 SKILL.md 所在文件夹**」为根目录。
 > - WorkBuddy / Claude Code / Codex 等工具在加载技能时会自动解析该根目录；
 > - 若某工具未自动解析，请将下文 `<本技能目录>` / `<技能根目录>` 占位符替换为本 SKILL.md 的**绝对路径**（例如 `C:\Users\hemin\.claude\skills\ontology-driven-dev` 或 `~/.workbuddy/skills/ontology-driven-dev`）后执行。
 
@@ -57,33 +57,36 @@ description: 当用户要基于业务需求，通过「需求探索 → 本体�
   1. `references/本体模型业务功能开发指导书.md`（核心：步骤 1-10、模型→实现映射总表、审批端到端、AI 对话、检查清单）
   2. `references/AI原生应用技术架构设计文档.md`（技术栈 / 分层 / 语义注册表 / AI 编排 / SSE / 只读 SQL 安全边界）
   3. `references/UI-UE界面设计规范.md`（配色 token / 9pt / 标签右对齐 / 三类界面布局 / 完整 CSS 库）
-- **技术底座**：本技能内置 `techbase/`（即 code-paas 干净源码，已剔除 node_modules / __pycache__ / dist / 运行时 DB）。
-  **第一步**：将 `techbase/` 整体复制为当前项目根目录下的 `code-app/`，随后安装依赖：
+- **技术底座（默认 go-techbase）**：本技能内置 `go-techbase/`（Hertz + GORM + PostgreSQL 16 + ZITADEL + React/TS；干净源码，已剔除构建产物与运行时 DB）。
+  **第一步（默认）**：将 `go-techbase/` 整体复制为当前项目根目录下的 `code-app/`，随后安装依赖：
   ```bash
   # 复制底座（保留目录结构）
-  cp -r <本技能目录>/techbase/. <当前项目>/code-app/
+  cp -r <本技能目录>/go-techbase/. <当前项目>/code-app/
   # （<本技能目录> = 本 SKILL.md 所在文件夹；各工具会自动解析，否则请替换为绝对路径）
   cd <当前项目>/code-app/frontend && npm install      # 还原前端依赖
-  cd <当前项目>/code-app/backend  && pip install -r requirements.txt
+  # 数据库：在 configs/config.yml 填写 OPIC-数据服务域(Pigsty 部署 PG16)发放的连接参数
+  cd <当前项目>/code-app && go run ./cmd/go-techbase   # 自动建表+种子；构建: go build ./cmd/go-techbase
   ```
-  > 底座是只读基线，扩展只在 `code-app/` 内进行；techbase 自带的"客户申请/查询"示例模型（models/ 下 m1/m2/m5/m6/mu）按指导书复制改造或删除，用阶段二 `yaml/` 七模型取而代之并登记 manifest.json。
+  **备选（code-paas / Python）**：用户明确要求 Python 底座时，改用 `cp -r <本技能目录>/techbase/. code-app/` 并 `pip install -r requirements.txt`，其余步骤同指导书。
+  > 底座是只读基线，扩展只在 `code-app/` 内进行；底座自带的"客户申请/查询"示例模型（models/ 下 m1/m2/m5/m6/mu）按指导书复制改造或删除，用阶段二 `yaml/` 七模型取而代之并登记 manifest.json。
 - **开发顺序（指导书 §1.4 标准流水线 10 步）**：
   1. 写七模型 YAML 到 `code-app/models/` 并登记 `manifest.json`；
   2. M1 → 数据库表 DDL（聚合根主表 / 子实体从表，含 5 默认字段；编号"三位前缀+四位流水号"自动生成）；
   3. 数据字典由注册表自动注册；
-  4. M2 行为 + M3 规则 → `services/*.py`（事务内；前置校验→规则校验→状态变更→`syncTriggers` 联动；规则引擎 `simpleeval`，违反给中文提示）；
-  5. M5 → 系统管理种子（角色 / 权限 / 资源 / 用户；接口加 `@require_permission`）；
+  4. M2 行为 + M3 规则 → 服务层（go-techbase: `service/*.go` 事务内；code-paas: `services/*.py`；前置校验→规则校验→状态变更→`syncTriggers` 联动；规则引擎 go-techbase 用内置安全表达式求值器、code-paas 用 `simpleeval`，违反给中文提示）；
+  5. M5 → 系统管理种子（角色 / 权限 / 资源 / 用户；接口挂权限中间件：go-techbase `middleware.RequirePermission` / code-paas `@require_permission`）；
   6. M6 → 流程引擎（M6 activities+branches 转 `node_graph`；审批角色须配置且有用户绑定）；
   7. MU → 菜单 + 页面 + 路由（单表 2 列 / 主从 3 列+从表表格 / 查询 3 列+结果表格分页；`AggregateRootRef` 跳选框、`Enum`/`DictionaryRef` 下拉框；带审批功能"保存草稿/提交"双按钮）；
-  8. **强制实现右侧 AI 对话框**（指导书第 7 章 + 架构文档第 9 章）：底座默认 `ai.enabled=false` 且 backend 无 `ai/`、`sse/` 模块，本步必须补齐——system prompt 注入本体注册表、工具注册（导航/查询/行为/只读 SQL）、SSE 流式（`message_start→delta→tool_call→tool_result→render_payload→message_end`）、`text/table/chart/action` 渲染协议、动态 SQL 严格只读白名单 + 审计；
+  8. **强制实现右侧 AI 对话框**（指导书第 7 章 + 架构文档第 9 章）：两套底座默认均不含 AI/SSE 模块（code-paas `ai.enabled=false`；go-techbase 无 ai/sse 包），本步必须补齐——system prompt 注入本体注册表、工具注册（导航/查询/行为/只读 SQL）、SSE 流式（`message_start→delta→tool_call→tool_result→render_payload→message_end`）、`text/table/chart/action` 渲染协议、动态 SQL 严格只读白名单 + 审计；
   9. 联调：登录 → 录入 → 暂存/提交 → 多级审批（通过/驳回/退回/撤回）→ 查询，全链路跑通；
   10. 验收：对照指导书附录 A 检查清单；规则违反前端有中文提示；界面符合 UI-UE 规范。
-- **输出**：`code-app/`（可运行系统）。默认账号见 `techbase/README.md`（admin/admin123 等）。
+- **输出**：`code-app/`（可运行系统）。默认账号见 `go-techbase/README.md`（admin/admin123 等；Python 底座同账号）。
+- **响应与错误码（go-techbase）**：所有接口为 OPIC 统一结构 `{"returnInfo":{"returnCode","errorMsg"},"data"}`，成功码 `SUC0000`，前缀 `SYS`，详见 `go-techbase/pkg/errcode`。
 
 ## 三、单阶段入口（用户可指定只跑某段）
 
 - **仅建模**：用户已提供需求规格说明书 → 直接从阶段二开始，产出 `yaml/` 七模型。
-- **仅构建**：用户已提供七模型 YAML → 直接从阶段三开始（复制 techbase → code-app 并实现）。
+- **仅构建**：用户已提供七模型 YAML → 直接从阶段三开始（默认复制 go-techbase → code-app；用户指定 Python 时复制 techbase）并实现。
 - **重确认需求**：已产出需求文档但有修订 → 回到对应阶段补确认。
 
 ## 四、固定输出约定（技能级，仅「业务域」为参数）
@@ -93,7 +96,7 @@ description: 当用户要基于业务需求，通过「需求探索 → 本体�
 | 需求文档 | `<业务域>-需求规格说明书-V9.md`（项目根） |
 | 本体模型 | `yaml/`（7 yaml + manifest.json） |
 | 业务系统 | `code-app/` |
-| 技术底座来源 | 技能内置 `techbase/`（运行时复制到 code-app） |
+| 技术底座来源 | 技能内置 `go-techbase/`（默认；Hertz+PG16+ZITADEL）或 `techbase/`（Python 备选），运行时复制到 code-app |
 
 > 若用户显式要求其他路径/命名，以用户指定为准；否则一律采用上表。
 
@@ -101,7 +104,7 @@ description: 当用户要基于业务需求，通过「需求探索 → 本体�
 
 1. **人工确认不可替代**：阶段一每个阶段必须硬暂停等人确认；附录 B 有 `[待确认]` 则文档不得标记完整。
 2. **模型是唯一语义来源**：代码 / 表 / 接口 / 菜单 / 权限 / 流程 / 规则全部可回溯到某个本体模型元素，禁止"模型一套、代码一套"。
-3. **底座不动**：扩展只在 `code-app/` 内，techbase/code-paas 是只读基线，不就地改。
+3. **底座不动**：扩展只在 `code-app/` 内，go-techbase / techbase(code-paas) 是只读基线，不就地改。
 4. **严格对齐四份规范**：开发全程遵守《本体模型业务功能开发指导书》《AI 原生应用技术架构设计文档》《UI-UE 界面设计规范》《ontology_modeling_framework_v9》的强制条款（5 默认字段、跳选框、双按钮、AI 只读、逻辑删除 `flag=0`、状态机）。
 5. **AI 对话强制**：阶段三必须实现右侧 AI 对话框（含只读安全边界）。
 6. **事务与联动边界**：一个行为只改一个聚合（聚合内主从同事务）；跨聚合靠 `syncTriggers` 或流程编排。
@@ -115,11 +118,12 @@ description: 当用户要基于业务需求，通过「需求探索 → 本体�
   - `AI 原生应用技术架构设计文档.md`
   - `UI-UE界面设计规范.md`
 - 黄金范例（仅文档 + yaml）：`reference-example/`（销售合同执行管理跑通实物，对照参考）
-- 技术底座（code-paas 干净源码 + requirements.txt + README）：`techbase/`
+- 技术底座·Go（默认；hertz-admin 布局 + PostgreSQL 16 + ZITADEL + OPIC 错误码 + README）：`go-techbase/`
+- 技术底座·Python（备选；code-paas 干净源码 + requirements.txt + README）：`techbase/`
 
 ## 七、运行说明（给用户）
 
 - 后端：`cd code-app/backend && pip install -r requirements.txt && python app.py`（默认 http://localhost:5000，首次启动自动建库+种子）
 - 前端开发：`cd code-app/frontend && npm install && npm run dev`（http://localhost:5173）
 - 前端生产：`npm run build` 后由 Flask 统一托管，访问 http://localhost:5000
-- 默认账号：admin/admin123（管理员，全部权限）；详见 `techbase/README.md`
+- 默认账号：admin/admin123（管理员，全部权限）；sales/cmanager/gm 见 `go-techbase/README.md`
