@@ -35,4 +35,10 @@ export const authApi = {
   logout() {
     return http.post('/auth/logout')
   },
+  mode() {
+    return http.get<{ mode: string; allow_local_login: boolean }>('/auth/mode')
+  },
+  zitadelLoginUrl() {
+    return http.get<{ url: string }>('/auth/login-url')
+  },
 }

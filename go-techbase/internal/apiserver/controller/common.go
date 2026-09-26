@@ -105,15 +105,16 @@ func ZitadelLoginURL(ctx context.Context, c *app.RequestContext) {
 	okJSON(c, utils.H{"url": raw}, "")
 }
 
-// ZitadelCallback 授权回调:code 换 token → userinfo → 本地用户 → 签发会话。
+// ZitadelCallback 授权回调:code 换 token(PKCE verifier 配对)→ userinfo → 本地用户 → 签发会话。
 func ZitadelCallback(ctx context.Context, c *app.RequestContext) {
 	code := c.Query("code")
 	state := c.Query("state")
-	if code == "" || !pendingStates.take(state) {
+	verifier, _ := pendingStates.take(state)
+	if code == "" || state == "" || verifier == "" {
 		c.String(400, "state 校验失败")
 		return
 	}
-	tr, err := auth.ExchangeCode(ctx, code)
+	tr, err := auth.ExchangeCode(ctx, code, verifier)
 	if err != nil {
 		c.JSON(200, errcode.New(errcode.ErrToken, err.Error(), nil))
 		return

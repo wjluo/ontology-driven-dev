@@ -27,12 +27,12 @@ func (p *pendingStore) set(state, verifier string) {
 	p.data[state] = verifier
 }
 
-func (p *pendingStore) take(state string) bool {
+func (p *pendingStore) take(state string) (string, bool) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	_, ok := p.data[state]
+	verifier, ok := p.data[state]
 	delete(p.data, state)
-	return ok || state != ""
+	return verifier, ok
 }
 
 // ---------- ZITADEL 用户映射 ----------

@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Lock, LogIn, User } from 'lucide-react'
 import { authApi } from '../api/auth'
+import { setToken, clearToken } from '../api/request'
 import { useAuth } from '../stores/userStore'
 import { toast } from '../components/toast'
 
@@ -11,6 +12,39 @@ export default function Login() {
   const [username, setUsername] = useState('admin')
   const [password, setPassword] = useState('admin123')
   const [loading, setLoading] = useState(false)
+  const [zitadelMode, setZitadelMode] = useState(false)
+
+  // ZITADEL 回调:授权码流程完成后服务端重定向回 /login#token=<会话令牌>
+  useEffect(() => {
+    const hash = window.location.hash || ''
+    const m = hash.match(/[#&]token=([^&]+)/)
+    if (m) {
+      history.replaceState(null, '', window.location.pathname)
+      setToken(m[1])
+      authApi
+        .info()
+        .then((info) => {
+          login({ ...info, token: m[1] })
+          toast('ZITADEL 登录成功')
+          navigate('/')
+        })
+        .catch(() => {
+          clearToken()
+          toast('ZITADEL 回调换取会话失败', 'error')
+        })
+      return
+    }
+    authApi.mode().then((r) => setZitadelMode(r.mode === 'zitadel')).catch(() => {})
+  }, [login, navigate])
+
+  const handleZitadel = async () => {
+    try {
+      const { url } = await authApi.zitadelLoginUrl()
+      window.location.href = url
+    } catch (err: any) {
+      toast(err.message || '跳转 ZITADEL 失败', 'error')
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -64,7 +98,15 @@ export default function Login() {
         <button type="submit" className="btn btn-primary" style={{ width: '100%', height: '44px' }} disabled={loading}>
           <LogIn size={16} /> {loading ? '登录中…' : '立即登录'}
         </button>
-        <div className="login-hint">默认管理员账号：admin / admin123</div>
+        <button
+          type="button"
+          className="btn"
+          style={{ width: '100%', height: '44px', marginTop: '12px', border: '1px solid var(--border-color, #e2edf2)', background: '#fff', color: '#2266e3' }}
+          onClick={handleZitadel}
+        >
+          使用 ZITADEL 单点登录
+        </button>
+        <div className="login-hint">默认管理员账号：admin / admin123{zitadelMode ? '；已接入 ZITADEL(零信任中心)' : ''}</div>
       </form>
     </div>
   )

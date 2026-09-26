@@ -43,7 +43,8 @@ export async function request<T = any>(path: string, options: RequestInit = {}):
   }
   const body: ApiResult<T> = await res.json()
   if (!body.returnInfo || body.returnInfo.returnCode !== SUCCESS_CODE) {
-    throw new Error(body.returnInfo?.errorMsg || '请求失败')
+    // OPIC 统一错误码(O-ARC):错误提示带出 7 位错误码,便于定位责任中心
+    throw new Error(`[${body.returnInfo?.returnCode || 'UNKNOWN'}] ${body.returnInfo?.errorMsg || '请求失败'}`)
   }
   return body.data
 }

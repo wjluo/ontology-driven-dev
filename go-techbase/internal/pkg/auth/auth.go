@@ -160,8 +160,8 @@ type TokenResult struct {
 	ExpiresIn    int    `json:"expires_in"`
 }
 
-// ExchangeCode 用授权码换 token。
-func ExchangeCode(ctx context.Context, code string) (*TokenResult, error) {
+// ExchangeCode 用授权码换 token(verifier 为 PKCE 码验证器,与 authorize 的 code_challenge 配对)。
+func ExchangeCode(ctx context.Context, code, verifier string) (*TokenResult, error) {
 	d, err := Discover(ctx)
 	if err != nil {
 		return nil, err
@@ -173,6 +173,9 @@ func ExchangeCode(ctx context.Context, code string) (*TokenResult, error) {
 	form.Set("redirect_uri", cfg.RedirectURL)
 	form.Set("client_id", cfg.ClientID)
 	form.Set("client_secret", cfg.ClientSecret)
+	if verifier != "" {
+		form.Set("code_verifier", verifier)
+	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, d.TokenEndpoint, strings.NewReader(form.Encode()))
 	if err != nil {
 		return nil, err
