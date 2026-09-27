@@ -231,6 +231,9 @@ func FetchUserinfo(ctx context.Context, accessToken string) (*UserInfo, error) {
 }
 
 // RoleClaims 从 userinfo 按配置声明取角色(ZITADEL 项目角色)。
+//
+// ZITADEL 断言的 roles 声明是嵌套 map:{"<roleKey>@<projectId>": {"<orgId>": "<orgDomain>"}},
+// 这里取 map 键并剥离 @projectId 后缀;同时兼容数组/逗号串等扁平形态。
 func RoleClaims(ui *UserInfo) []string {
 	claim := config.Config.Auth.RoleClaim
 	v, ok := ui.Everything[claim]
@@ -245,13 +248,37 @@ func RoleClaims(ui *UserInfo) []string {
 				out = append(out, s)
 			}
 		}
-		return out
+		return NormalizeRoleKeys(out)
 	case []string:
-		return roles
+		return NormalizeRoleKeys(roles)
 	case string:
-		return strings.Split(roles, ",")
+		return NormalizeRoleKeys(strings.Split(roles, ","))
+	case map[string]any:
+		out := make([]string, 0, len(roles))
+		for k := range roles {
+			out = append(out, k)
+		}
+		return NormalizeRoleKeys(out)
 	}
 	return nil
+}
+
+// NormalizeRoleKeys 剥离 "roleKey@projectId" 形态的项目后缀并去重保序。
+func NormalizeRoleKeys(keys []string) []string {
+	out := make([]string, 0, len(keys))
+	seen := map[string]bool{}
+	for _, k := range keys {
+		if i := strings.Index(k, "@"); i > 0 {
+			k = k[:i]
+		}
+		k = strings.TrimSpace(k)
+		if k == "" || seen[k] {
+			continue
+		}
+		seen[k] = true
+		out = append(out, k)
+	}
+	return out
 }
 
 // ---------- JWKS(RS256 验签) ----------

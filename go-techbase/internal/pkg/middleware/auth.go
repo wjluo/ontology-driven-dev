@@ -63,10 +63,15 @@ func LoginRequired() app.HandlerFunc {
 }
 
 // ensureZitadelUser 按 ZITADEL 身份取/建本地用户并映射角色(claim 角色 + 默认角色)。
+// 已存在用户且本次声明携带角色时,重新同步角色(角色变更在下次登录生效)。
 func ensureZitadelUser(ctx context.Context, sub, username string, claimRoles []string) int64 {
 	user, err := service.GetUserByUsername(username)
 	if err == nil && user != nil {
-		return service.Int(user["id"])
+		uid := service.Int(user["id"])
+		if len(claimRoles) > 0 {
+			_ = service.SyncUserRolesByCodes(uid, claimRoles)
+		}
+		return uid
 	}
 	cfg := config.Config.Auth
 	if !cfg.AutoProvision {
@@ -96,15 +101,17 @@ func ensureZitadelUser(ctx context.Context, sub, username string, claimRoles []s
 			roleIDs = append(roleIDs, service.Int(role["id"]))
 		}
 	}
-	// ② 默认角色兜底
-	for _, code := range strings.Split(cfg.DefaultRoleCodes, ",") {
-		code = strings.TrimSpace(code)
-		if code == "" || seen[code] {
-			continue
-		}
-		seen[code] = true
-		if role, err := service.GetRoleByCode(code); err == nil && role != nil {
-			roleIDs = append(roleIDs, service.Int(role["id"]))
+	// ② 默认角色兜底(仅新用户)
+	if len(roleIDs) == 0 {
+		for _, code := range strings.Split(cfg.DefaultRoleCodes, ",") {
+			code = strings.TrimSpace(code)
+			if code == "" || seen[code] {
+				continue
+			}
+			seen[code] = true
+			if role, err := service.GetRoleByCode(code); err == nil && role != nil {
+				roleIDs = append(roleIDs, service.Int(role["id"]))
+			}
 		}
 	}
 	if len(roleIDs) > 0 {
@@ -118,7 +125,7 @@ func randomPlaceholder() string {
 	return "zitadel-managed:" + auth.NewState()
 }
 
-// extractClaimRoles 从 token claims 提取角色声明。
+// extractClaimRoles 从 token claims 提取角色声明(兼容 ZITADEL 嵌套 map 形态)。
 func extractClaimRoles(claims jwt.MapClaims) []string {
 	claim := config.Config.Auth.RoleClaim
 	v, ok := claims[claim]
@@ -133,11 +140,17 @@ func extractClaimRoles(claims jwt.MapClaims) []string {
 				out = append(out, s)
 			}
 		}
-		return out
+		return auth.NormalizeRoleKeys(out)
 	case []string:
-		return roles
+		return auth.NormalizeRoleKeys(roles)
 	case string:
-		return strings.Split(roles, ",")
+		return auth.NormalizeRoleKeys(strings.Split(roles, ","))
+	case map[string]any:
+		out := make([]string, 0, len(roles))
+		for k := range roles {
+			out = append(out, k)
+		}
+		return auth.NormalizeRoleKeys(out)
 	}
 	return nil
 }

@@ -38,13 +38,19 @@ func (p *pendingStore) take(state string) (string, bool) {
 // ---------- ZITADEL 用户映射 ----------
 
 // ensureUserFromZitadel 按 userinfo 取/建本地用户(claim 角色 + 默认角色)。
+// 已存在用户且本次声明携带角色时,重新同步角色(ZITADEL 角色变更在下次登录生效)。
 func ensureUserFromZitadel(ui *auth.UserInfo) int64 {
 	username := ui.PreferredUsername
 	if username == "" {
 		username = ui.Sub
 	}
+	claimRoles := auth.RoleClaims(ui)
 	if user, err := service.GetUserByUsername(username); err == nil && user != nil {
-		return service.Int(user["id"])
+		uid := service.Int(user["id"])
+		if len(claimRoles) > 0 {
+			_ = service.SyncUserRolesByCodes(uid, claimRoles)
+		}
+		return uid
 	}
 	cfg := config.Config.Auth
 	if !cfg.AutoProvision {
@@ -72,11 +78,14 @@ func ensureUserFromZitadel(ui *auth.UserInfo) int64 {
 			roleIDs = append(roleIDs, service.Int(role["id"]))
 		}
 	}
-	for _, code := range auth.RoleClaims(ui) {
+	for _, code := range claimRoles {
 		appendRole(code)
 	}
-	for _, code := range splitCSV(cfg.DefaultRoleCodes) {
-		appendRole(code)
+	// 默认角色兜底(仅新用户且声明未携带角色)
+	if len(roleIDs) == 0 {
+		for _, code := range splitCSV(cfg.DefaultRoleCodes) {
+			appendRole(code)
+		}
 	}
 	if len(roleIDs) > 0 {
 		_ = service.AssignRoles(uid, roleIDs)

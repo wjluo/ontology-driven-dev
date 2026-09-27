@@ -2,6 +2,7 @@ package service
 
 import (
 	"encoding/json"
+	"strings"
 
 	"github.com/sharptoolbox/ontology-driven-dev/go-techbase/internal/pkg/ontology"
 )
@@ -9,6 +10,29 @@ import (
 // GetRoleByCode 按编码取角色。
 func GetRoleByCode(code string) (map[string]any, error) {
 	return qOne(`SELECT * FROM sys_role WHERE code = ?`, code)
+}
+
+// SyncUserRolesByCodes 按角色编码全量同步用户角色(ZITADEL claim → 本地角色)。
+// 仅映射本地已存在的角色;返回实际生效的本地角色编码。
+func SyncUserRolesByCodes(userID int64, roleCodes []string) error {
+	var roleIDs []any
+	applied := map[string]bool{}
+	for _, code := range roleCodes {
+		code = strings.TrimSpace(code)
+		if code == "" || applied[code] {
+			continue
+		}
+		role, err := GetRoleByCode(code)
+		if err != nil || role == nil {
+			continue
+		}
+		applied[code] = true
+		roleIDs = append(roleIDs, Int(role["id"]))
+	}
+	if len(roleIDs) == 0 {
+		return nil
+	}
+	return SetUserRoles(userID, roleIDs)
 }
 
 // ---------- 种子数据(seed.py 对应) ----------
