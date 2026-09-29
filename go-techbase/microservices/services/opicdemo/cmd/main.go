@@ -74,6 +74,10 @@ func main() {
 	h := gin.New()
 	h.Use(gin.Recovery(), middleware.CORS())
 	api.InitApi(h)
+	// 未命中路由 → O-ARC 信封（对齐 v1 行为：SYS1002 接口不存在）
+	h.NoRoute(func(c *gin.Context) {
+		c.JSON(404, gin.H{"returnInfo": gin.H{"returnCode": "SYS1002", "errorMsg": "接口不存在"}, "data": nil})
+	})
 
 	log.Printf("[opicdemo] listening :%s（事件总线/工作流运行时由平台 shared 层承载）", config.Config.App.Port)
 	if err := h.Run(":" + config.Config.App.Port); err != nil {

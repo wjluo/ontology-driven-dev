@@ -3,6 +3,7 @@
 package config
 
 import (
+	"fmt"
 	"os"
 	"strconv"
 	"strings"
@@ -102,34 +103,10 @@ func DSN() string {
 	if Config.Database.DSN != "" {
 		return Config.Database.DSN
 	}
-	base := "host=%s port=%d user=%s dbname=%s sslmode=%s"
-	args := []any{Config.Database.Host, Config.Database.Port, Config.Database.UserName, Config.Database.DBName, Config.Database.SSLMode}
 	if Config.Database.Password != "" {
-		base = "host=%s port=%d user=%s password=%s dbname=%s sslmode=%s"
-		args = []any{Config.Database.Host, Config.Database.Port, Config.Database.UserName, Config.Database.Password, Config.Database.DBName, Config.Database.SSLMode}
+		return fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
+			Config.Database.Host, Config.Database.Port, Config.Database.UserName, Config.Database.Password, Config.Database.DBName, Config.Database.SSLMode)
 	}
-	return fmtSprintf(base, args...)
-}
-
-func fmtSprintf(format string, args ...any) string {
-	out := format
-	for i, a := range args {
-		var s string
-		switch x := a.(type) {
-		case string:
-			s = x
-		case int:
-			s = strconv.Itoa(x)
-		}
-		out = replaceOnce(out, "%s", s, i)
-	}
-	return out
-}
-
-func replaceOnce(s, old, new string, _ int) string {
-	idx := strings.Index(s, old)
-	if idx < 0 {
-		return s
-	}
-	return s[:idx] + new + s[idx+len(old):]
+	return fmt.Sprintf("host=%s port=%d user=%s dbname=%s sslmode=%s",
+		Config.Database.Host, Config.Database.Port, Config.Database.UserName, Config.Database.DBName, Config.Database.SSLMode)
 }
