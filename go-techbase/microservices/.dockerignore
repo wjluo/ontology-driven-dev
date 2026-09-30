@@ -1,6 +1,0 @@
-**/node_modules
-**/dist
-**/.cache
-**/coverage.out
-web/playwright-report
-web/test-results

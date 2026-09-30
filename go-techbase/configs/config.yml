@@ -1,0 +1,56 @@
+# opic-techbase 配置(环境变量可覆盖,优先级 env > yaml > 默认;见 .env.example)
+app:
+  name: opic-techbase
+  port: "9680"
+
+log:
+  level: info
+  output: std    # std|file(file 时写 dir/opic-techbase.log,按大小轮转)
+  dir: ./log
+
+# 数据库:PostgreSQL 16(OPIC-DBS 集成 Pigsty 部署;连接串经数据服务域自助申请)
+database:
+  host: localhost
+  port: 5432
+  username: postgres
+  password: postgres
+  dbname: go_techbase
+  sslmode: disable
+  maxconns: 20
+  minconns: 5
+
+# Redis(可选,对齐 gopherforge):启用后登出令牌写入吊销黑名单;未启用功能静默降级
+redis:
+  enabled: false
+  host: localhost
+  port: 6379
+  password: ""
+  db: 0
+
+# Prometheus 指标(/metrics;env METRICS_ENABLED 可覆盖)
+metrics:
+  enabled: true
+
+# 身份认证:OPIC-零信任安全中心集成的 ZITADEL
+# mode=local     本地账号密码登录(开发/单机回退,HS256 会话)
+# mode=zitadel   OIDC Authorization Code + PKCE;JWKS 验签;角色声明映射本地角色
+auth:
+  mode: local
+  jwt_secret: go-techbase-dev-secret
+  jwt_expires_hours: 12
+  allow_local_login: true
+  issuer: http://localhost:8080        # ZITADEL 地址(零信任中心 docker-compose)
+  client_id: go-techbase
+  client_secret: ""
+  redirect_url: http://localhost:9680/api/auth/callback
+  role_claim: roles                     # ZITADEL 项目角色声明名
+  auto_provision: true                  # 按 userinfo 自动建用户
+  default_role_codes: SALES             # 自动 provisioning 兜底角色
+
+# 七模型本体 YAML 目录(默认随底座 models/,应用项目可指向自己的 models/)
+ontology:
+  models_dir: models
+
+# 前端构建产物目录(空则不托管;开发期前端走 vite proxy;compose 走网关/nginx)
+frontend:
+  dist_dir: ""

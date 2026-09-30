@@ -1,42 +1,64 @@
-SHELL := /bin/sh
+# opic-techbase —— gopherforge 工程模式 Makefile
+SHELL := /bin/bash
 
-# 根 Makefile：微服务脚手架
-MICRO := microservices
+DSN ?= postgres://postgres:postgres@localhost:5432/go_techbase?sslmode=disable
+GOOSE := go run github.com/pressly/goose/v3/cmd/goose
 
-.PHONY: help
-help:
-	@echo "Go Admin Kit 微服务脚手架（一人维护）："
-	@echo "  microservices/   微服务中台脚手架"
-	@echo ""
-	@echo "微服务：make compose-up | compose-down | test | smoke-api | ..."
-	@echo "初始化：make setup（一键配置开发环境）"
-	@echo "详情：cd microservices && 查看 README"
+.PHONY: setup dev build test lint clean frontend-install frontend-build \
+        migrate-up migrate-status migrate-down migrate-create \
+        compose-up compose-down compose-logs docker-build
 
-.PHONY: setup
-setup:
-	@echo "==> 安装 git hooks..."
-	@./scripts/install-git-hooks.sh
-	@echo "==> 复制 .env.example → .env（如不存在）..."
+setup: ## 初始化:下载依赖 + 复制 .env
+	go mod download
 	@test -f .env || cp .env.example .env
-	@echo "==> 完成。编辑 .env 配置数据库密码等后即可 make compose-up"
+	@echo "setup 完成"
 
-.PHONY: compose-up compose-down compose-monitoring infra-up infra-down dev-backend dev-auth dev-frontend \
-	build-server test lint audit smoke-api e2e-api db-import migrate-up migrate-status \
-	migrate-down migrate-redo migrate-reset migrate-create api-contract status logs
+dev: ## 本地启动后端(:9680,自动 goose 迁移 + 种子)
+	go run ./cmd/techbase
 
-compose-up compose-down compose-monitoring infra-up infra-down dev-backend dev-auth dev-frontend \
-build-server test lint smoke-api db-import migrate-up migrate-status \
-migrate-down migrate-create api-contract status logs:
-	@$(MAKE) -C $(MICRO) $@
+dev-frontend: ## 本地启动前端(:5173,proxy → 9680)
+	cd frontend && npm run dev
 
-audit:
-	cd $(MICRO)/web && npm audit --omit=dev
+build: ## 编译后端二进制
+	go build -o bin/techbase ./cmd/techbase
 
-e2e-api: smoke-api
+test: ## 单元测试
+	go test ./...
 
-migrate-redo migrate-reset:
-	@$(MAKE) -C $(MICRO)/services/monitor $@
+lint: ## go vet
+	go vet ./...
 
-# 本机远程开发工作流（remote-sync / remote-ms-deploy / remote-logs 等）
-# 放 Makefile.local，不入库；存在时自动加载。
--include Makefile.local
+frontend-install: ## 安装前端依赖
+	cd frontend && npm install
+
+frontend-build: ## 构建前端产物(frontend/dist)
+	cd frontend && npm run build
+
+migrate-up: ## goose 迁移 Up(DSN 变量可覆盖)
+	$(GOOSE) -dir migrations postgres "$(DSN)" up
+
+migrate-status: ## goose 迁移状态
+	$(GOOSE) -dir migrations postgres "$(DSN)" status
+
+migrate-down: ## goose 回滚最近一笔
+	$(GOOSE) -dir migrations postgres "$(DSN)" down
+
+migrate-create: ## goose 新建迁移(make migrate-create MIGRATION_NAME=add_xxx)
+	$(GOOSE) -dir migrations create $(MIGRATION_NAME) sql
+
+compose-up: ## 拉起数据栈 + 应用栈(含网关/前端)
+	docker compose -f docker-compose.infra.yml -p opic-techbase-infra up -d --wait
+	docker compose -p opic-techbase up -d --build
+
+compose-down: ## 停止应用栈与数据栈
+	docker compose -p opic-techbase down
+	docker compose -f docker-compose.infra.yml -p opic-techbase-infra down
+
+compose-logs: ## 跟踪应用栈日志
+	docker compose -p opic-techbase logs -f
+
+docker-build: ## 构建后端镜像
+	docker build -t opic-techbase:latest .
+
+clean: ## 清理构建产物
+	rm -rf bin frontend/dist frontend/node_modules log
