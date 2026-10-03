@@ -57,8 +57,19 @@ description: 当用户要基于业务需求，通过「需求探索 → 本体�
   1. `references/本体模型业务功能开发指导书.md`（核心：步骤 1-10、模型→实现映射总表、审批端到端、AI 对话、检查清单）
   2. `references/AI原生应用技术架构设计文档.md`（技术栈 / 分层 / 语义注册表 / AI 编排 / SSE / 只读 SQL 安全边界）
   3. `references/UI-UE界面设计规范.md`（配色 token / 9pt / 标签右对齐 / 三类界面布局 / 完整 CSS 库）
-- **技术底座（默认 go-techbase）**：本技能内置 `go-techbase/`（Hertz + GORM + PostgreSQL 16 + ZITADEL + React/TS；干净源码，已剔除构建产物与运行时 DB）。
-  **第一步（默认）**：将 `go-techbase/` 整体复制为当前项目根目录下的 `code-app/`，随后安装依赖：
+- **技术底座（默认 go-techbase）**：基线源码在 OPIC 技术底座仓 **`opic-techbase`**（`gitcode.com/opic-ontology/opic-techbase`；本技能内置 `go-techbase/` 为其快照，Hertz + GORM + PostgreSQL 16 + ZITADEL + React/TS）。
+  **第一步（OPIC-TECH-01 正式形态，默认）**：**从技术底座 fork 创建能力中心 REPO**（规则：`opic-design/docs/rules/opic-tech-fork-rule.md`）——
+  输入：能力中心英文名（即新 REPO 名）、仓库主站点组织名；执行：
+
+  ```bash
+  bash <本技能目录>/scripts/fork_center.sh <能力中心英文名> <组织名>
+  # 例: bash scripts/fork_center.sh model-center opic-ontology
+  # 输出: 新 REPO = <组织>/<能力中心英文名>（全部分支+tags，血缘 upstream 标注）
+  ```
+
+  fork 后三步改造（同底座 README §九）：`database.schema = o<域码>`（OPIC-DB-SCHEMA-01）→ 清 `migrations/` 落本中心 DDL → 菜单/路由按中心定制。
+
+  **备选（单项目/离线快照）**：将 `go-techbase/` 整体复制为当前项目根目录下的 `code-app/`（不建 REPO，仅本地演示）：
   ```bash
   # 复制底座（保留目录结构）
   cp -r <本技能目录>/go-techbase/. <当前项目>/code-app/
