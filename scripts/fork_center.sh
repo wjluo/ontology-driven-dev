@@ -11,10 +11,11 @@
 #
 # 输出: 新 REPO 名 = 能力中心英文名（<组织>/<中心名>）
 #
-# 实现说明（gitcode API 实测行为，2026-10-03）:
-#   - gitcode 的 fork API 不支持 namespace 目标参数（一律落到个人空间）、
-#     PATCH 仅改显示名不改 path —— 故采用「组织建仓 + mirror push」等价实现，
-#     血缘以 git remote upstream + 仓库描述 "forked from ..." 标注。
+# 实现说明（gitcode API 实测行为，2026-10-04 复核）:
+#   - gitcode 的 fork API 无法 fork 进组织（org_id/namespace/form 均落个人空间，2026-10-04
+#     三种参数形态实测一致）——平台级 fork 只能 Web UI 操作（fork 按钮选组织）。
+#   - 本脚本为「组织建仓 + mirror push」等价实现（血缘以 git remote upstream +
+#     仓库描述 "forked from ..." 标注）；**如需平台级 fork 徽标，请在 Web UI 执行**。
 #   - API 有分钟级限流（建仓/删除 1 次/分钟），脚本内置 429 退避重试。
 #
 # 前置: git credential store 中存在 gitcode.com 的 opic1 凭证（token）。
@@ -23,7 +24,7 @@ set -euo pipefail
 
 CENTER_NAME="${1:-}"
 ORG="${2:-}"
-UPSTREAM_ORG="${UPSTREAM_ORG:-opic-ontology}"
+UPSTREAM_ORG="${UPSTREAM_ORG:-opic-ai}"
 UPSTREAM_REPO="${UPSTREAM_REPO:-opic-techbase}"
 API="https://gitcode.com/api/v5"
 
