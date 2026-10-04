@@ -97,7 +97,7 @@ description: 当用户要基于业务需求，通过「需求探索 → 本体�
 ## 三、单阶段入口（用户可指定只跑某段）
 
 - **仅建模**：用户已提供需求规格说明书 → 直接从阶段二开始，产出 `yaml/` 七模型。
-- **仅构建**：用户已提供七模型 YAML → 直接从阶段三开始（默认复制 go-techbase → code-app；用户指定 Python 时复制 techbase）并实现。
+- **仅构建**：用户已提供七模型 YAML → 直接从阶段三开始（技术底座获取方式同阶段三默认：**fork 正式形态**，OPIC-TECH-01 v1.2 §五；备选快照复制/Python 仅限离线演示，见阶段三）并实现。
 - **重确认需求**：已产出需求文档但有修订 → 回到对应阶段补确认。
 
 ## 四、固定输出约定（技能级，仅「业务域」为参数）
@@ -107,7 +107,7 @@ description: 当用户要基于业务需求，通过「需求探索 → 本体�
 | 需求文档 | `<业务域>-需求规格说明书-V9.md`（项目根） |
 | 本体模型 | `yaml/`（7 yaml + manifest.json） |
 | 业务系统 | `code-app/` |
-| 技术底座来源 | 技能内置 `go-techbase/`（默认；Hertz+PG16+ZITADEL）或 `techbase/`（Python 备选），运行时复制到 code-app |
+| 技术底座来源 | **fork 正式形态（默认，OPIC-TECH-01 v1.2 §五）**：`scripts/fork_center.sh <中心英文名> <组织名>` 从 `gitcode.com/opic-ontology/opic-techbase` 创建 REPO；备选（离线演示）内置 `go-techbase/`/`techbase/` 快照复制到 code-app |
 
 > 若用户显式要求其他路径/命名，以用户指定为准；否则一律采用上表。
 
